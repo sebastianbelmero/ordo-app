@@ -8,6 +8,8 @@ use App\Contracts\Repositories\Opus\ProjectRepositoryInterface;
 use App\Contracts\Repositories\Opus\StatusRepositoryInterface;
 use App\Contracts\Repositories\Opus\TaskRepositoryInterface;
 use App\Contracts\Repositories\Opus\WorkspaceRepositoryInterface;
+use App\Models\User;
+use App\Services\Google\GoogleCalendarService;
 
 /**
  * ======================================================================================
@@ -26,6 +28,7 @@ class OpusService
         protected ProjectRepositoryInterface $projectRepository,
         protected TaskRepositoryInterface $taskRepository,
         protected StatusRepositoryInterface $statusRepository,
+        protected GoogleCalendarService $googleCalendarService,
     ) {}
 
     // ==================================================================================
@@ -276,17 +279,47 @@ class OpusService
     /**
      * Create a new task.
      */
-    public function createTask(array $data): array
+    public function createTask(array $data, ?User $user = null): array
     {
-        return $this->taskRepository->create($data);
+        $task = $this->taskRepository->create($data);
+
+        // Sync to Google Calendar if user is provided and has due_date
+        if ($user && ! empty($task['due_date'])) {
+            $eventId = $this->googleCalendarService->syncTask($user, $task);
+            if ($eventId) {
+                $this->taskRepository->update($task['id'], [
+                    'google_calendar_event_id' => $eventId,
+                ]);
+                $task['google_calendar_event_id'] = $eventId;
+            }
+        }
+
+        return $task;
     }
 
     /**
      * Update a task.
      */
-    public function updateTask(int $id, array $data): ?array
+    public function updateTask(int $id, array $data, ?User $user = null): ?array
     {
-        return $this->taskRepository->update($id, $data);
+        $task = $this->taskRepository->update($id, $data);
+
+        // Sync to Google Calendar if user is provided
+        if ($task && $user && ! empty($task['due_date'])) {
+            $eventId = $this->googleCalendarService->syncTask(
+                $user,
+                $task,
+                $task['google_calendar_event_id'] ?? null
+            );
+            if ($eventId && $eventId !== ($task['google_calendar_event_id'] ?? null)) {
+                $this->taskRepository->update($id, [
+                    'google_calendar_event_id' => $eventId,
+                ]);
+                $task['google_calendar_event_id'] = $eventId;
+            }
+        }
+
+        return $task;
     }
 
     /**
@@ -300,8 +333,15 @@ class OpusService
     /**
      * Delete a task.
      */
-    public function deleteTask(int $id): bool
+    public function deleteTask(int $id, ?User $user = null): bool
     {
+        // Get task first to remove from Google Calendar
+        $task = $this->taskRepository->findWithRelations($id);
+
+        if ($task && $user && ! empty($task['google_calendar_event_id'])) {
+            $this->googleCalendarService->removeEvent($user, $task['google_calendar_event_id']);
+        }
+
         return $this->taskRepository->delete($id);
     }
 

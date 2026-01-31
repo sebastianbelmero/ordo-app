@@ -7,6 +7,8 @@ namespace App\Services\Vocatio;
 use App\Contracts\Repositories\Vocatio\JobRepositoryInterface;
 use App\Contracts\Repositories\Vocatio\JobShareRepositoryInterface;
 use App\Contracts\Repositories\Vocatio\PipelineRepositoryInterface;
+use App\Models\User;
+use App\Services\Google\GoogleCalendarService;
 
 /**
  * ======================================================================================
@@ -23,6 +25,7 @@ class VocatioService
         protected PipelineRepositoryInterface $pipelineRepository,
         protected JobRepositoryInterface $jobRepository,
         protected JobShareRepositoryInterface $jobShareRepository,
+        protected GoogleCalendarService $googleCalendarService,
     ) {}
 
     // ==================================================================================
@@ -216,17 +219,47 @@ class VocatioService
     /**
      * Create a new job.
      */
-    public function createJob(array $data): array
+    public function createJob(array $data, ?User $user = null): array
     {
-        return $this->jobRepository->create($data);
+        $job = $this->jobRepository->create($data);
+
+        // Sync to Google Calendar if user is provided and has due_date
+        if ($user && ! empty($job['due_date'])) {
+            $eventId = $this->googleCalendarService->syncJob($user, $job);
+            if ($eventId) {
+                $this->jobRepository->update($job['id'], [
+                    'google_calendar_event_id' => $eventId,
+                ]);
+                $job['google_calendar_event_id'] = $eventId;
+            }
+        }
+
+        return $job;
     }
 
     /**
      * Update a job.
      */
-    public function updateJob(string $id, array $data): ?array
+    public function updateJob(string $id, array $data, ?User $user = null): ?array
     {
-        return $this->jobRepository->update($id, $data);
+        $job = $this->jobRepository->update($id, $data);
+
+        // Sync to Google Calendar if user is provided
+        if ($job && $user && ! empty($job['due_date'])) {
+            $eventId = $this->googleCalendarService->syncJob(
+                $user,
+                $job,
+                $job['google_calendar_event_id'] ?? null
+            );
+            if ($eventId && $eventId !== ($job['google_calendar_event_id'] ?? null)) {
+                $this->jobRepository->update($id, [
+                    'google_calendar_event_id' => $eventId,
+                ]);
+                $job['google_calendar_event_id'] = $eventId;
+            }
+        }
+
+        return $job;
     }
 
     /**
@@ -240,8 +273,15 @@ class VocatioService
     /**
      * Delete a job.
      */
-    public function deleteJob(string $id): bool
+    public function deleteJob(string $id, ?User $user = null): bool
     {
+        // Get job first to remove from Google Calendar
+        $job = $this->jobRepository->findWithStatus($id);
+
+        if ($job && $user && ! empty($job['google_calendar_event_id'])) {
+            $this->googleCalendarService->removeEvent($user, $job['google_calendar_event_id']);
+        }
+
         return $this->jobRepository->delete($id);
     }
 
@@ -300,7 +340,7 @@ class VocatioService
                 if ($notes) {
                     $notes .= "\n\n";
                 }
-                $notes .= "[Shared by " . ($share['sender']['name'] ?? 'someone') . "]";
+                $notes .= '[Shared by '.($share['sender']['name'] ?? 'someone').']';
 
                 $this->jobRepository->create([
                     'company' => $originalJob['company'],

@@ -8,7 +8,7 @@ import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { index as indexModules } from '@/routes/modules';
 import { edit } from '@/routes/profile';
-import { opus as opusSettings, studium as studiumSettings, vocatio as vocatioSettings } from '@/routes/settings';
+import { opus as opusSettings, studium as studiumSettings, vocatio as vocatioSettings, googleCalendar } from '@/routes/settings';
 import type { NavItem } from '@/types';
 
 const sidebarNavItems: NavItem[] = [
@@ -25,6 +25,11 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Modules',
         href: indexModules(),
+        icon: null,
+    },
+    {
+        title: 'Google Calendar',
+        href: googleCalendar(),
         icon: null,
     },
     {

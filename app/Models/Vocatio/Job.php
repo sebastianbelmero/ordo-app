@@ -29,6 +29,7 @@ class Job extends Model
         'level_of_interest',
         'salary_min',
         'salary_max',
+        'google_calendar_event_id',
     ];
 
     protected function casts(): array
@@ -70,14 +71,14 @@ class Job extends Model
         }
 
         if ($this->salary_min && $this->salary_max) {
-            return number_format($this->salary_min) . ' - ' . number_format($this->salary_max);
+            return number_format($this->salary_min).' - '.number_format($this->salary_max);
         }
 
         if ($this->salary_min) {
-            return 'From ' . number_format($this->salary_min);
+            return 'From '.number_format($this->salary_min);
         }
 
-        return 'Up to ' . number_format($this->salary_max);
+        return 'Up to '.number_format($this->salary_max);
     }
 
     /**

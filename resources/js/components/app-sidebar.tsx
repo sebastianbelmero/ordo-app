@@ -27,6 +27,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as calendarIndex } from '@/routes/calendar';
 import { index as friendsIndex } from '@/routes/friends';
 import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
@@ -43,6 +44,11 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Calendar',
+        href: calendarIndex(),
+        icon: Calendar,
     },
     {
         title: 'Friends',

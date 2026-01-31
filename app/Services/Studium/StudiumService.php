@@ -8,6 +8,8 @@ use App\Contracts\Repositories\Studium\AssignmentRepositoryInterface;
 use App\Contracts\Repositories\Studium\CourseRepositoryInterface;
 use App\Contracts\Repositories\Studium\ProgramRepositoryInterface;
 use App\Contracts\Repositories\Studium\SemesterRepositoryInterface;
+use App\Models\User;
+use App\Services\Google\GoogleCalendarService;
 
 /**
  * ======================================================================================
@@ -25,6 +27,7 @@ class StudiumService
         protected SemesterRepositoryInterface $semesterRepository,
         protected CourseRepositoryInterface $courseRepository,
         protected AssignmentRepositoryInterface $assignmentRepository,
+        protected GoogleCalendarService $googleCalendarService,
     ) {}
 
     // ==================================================================================
@@ -290,24 +293,61 @@ class StudiumService
     /**
      * Create a new assignment.
      */
-    public function createAssignment(array $data): array
+    public function createAssignment(array $data, ?User $user = null): array
     {
-        return $this->assignmentRepository->create($data);
+        $assignment = $this->assignmentRepository->create($data);
+
+        // Sync to Google Calendar if user is provided and has deadline
+        if ($user && ! empty($assignment['deadline'])) {
+            $eventId = $this->googleCalendarService->syncAssignment($user, $assignment);
+            if ($eventId) {
+                $this->assignmentRepository->update($assignment['id'], [
+                    'google_calendar_event_id' => $eventId,
+                ]);
+                $assignment['google_calendar_event_id'] = $eventId;
+            }
+        }
+
+        return $assignment;
     }
 
     /**
      * Update an assignment.
      */
-    public function updateAssignment(int $id, array $data): ?array
+    public function updateAssignment(int $id, array $data, ?User $user = null): ?array
     {
-        return $this->assignmentRepository->update($id, $data);
+        $assignment = $this->assignmentRepository->update($id, $data);
+
+        // Sync to Google Calendar if user is provided
+        if ($assignment && $user && ! empty($assignment['deadline'])) {
+            $eventId = $this->googleCalendarService->syncAssignment(
+                $user,
+                $assignment,
+                $assignment['google_calendar_event_id'] ?? null
+            );
+            if ($eventId && $eventId !== ($assignment['google_calendar_event_id'] ?? null)) {
+                $this->assignmentRepository->update($id, [
+                    'google_calendar_event_id' => $eventId,
+                ]);
+                $assignment['google_calendar_event_id'] = $eventId;
+            }
+        }
+
+        return $assignment;
     }
 
     /**
      * Delete an assignment.
      */
-    public function deleteAssignment(int $id): bool
+    public function deleteAssignment(int $id, ?User $user = null): bool
     {
+        // Get assignment first to remove from Google Calendar
+        $assignment = $this->assignmentRepository->findWithType($id);
+
+        if ($assignment && $user && ! empty($assignment['google_calendar_event_id'])) {
+            $this->googleCalendarService->removeEvent($user, $assignment['google_calendar_event_id']);
+        }
+
         return $this->assignmentRepository->delete($id);
     }
 

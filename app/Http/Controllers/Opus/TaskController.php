@@ -75,7 +75,7 @@ class TaskController extends Controller
         $data = $request->validated();
         $data['project_id'] = $project;
 
-        $task = $this->opusService->createTask($data);
+        $task = $this->opusService->createTask($data, $request->user());
 
         return redirect()
             ->route('opus.tasks.show', $task['id'])
@@ -131,7 +131,7 @@ class TaskController extends Controller
      */
     public function update(UpdateTaskRequest $request, int $task): RedirectResponse
     {
-        $data = $this->opusService->updateTask($task, $request->validated());
+        $data = $this->opusService->updateTask($task, $request->validated(), $request->user());
 
         if (! $data) {
             abort(404);
@@ -198,6 +198,7 @@ class TaskController extends Controller
         if ($targetStatus) {
             $this->opusService->updateTaskStatus($task, $targetStatus['id']);
             $status = $targetStatus['is_completed'] ? 'completed' : 'pending';
+
             return back()->with('success', "Task marked as {$status}.");
         }
 
@@ -209,7 +210,7 @@ class TaskController extends Controller
      *
      * Route: DELETE /opus/tasks/{task}
      */
-    public function destroy(int $task): RedirectResponse
+    public function destroy(Request $request, int $task): RedirectResponse
     {
         $taskData = $this->opusService->getTask($task);
 
@@ -218,7 +219,7 @@ class TaskController extends Controller
         }
 
         $projectId = $taskData['project_id'];
-        $this->opusService->deleteTask($task);
+        $this->opusService->deleteTask($task, $request->user());
 
         return redirect()
             ->route('opus.projects.show', $projectId)

@@ -19,6 +19,7 @@ class Task extends Model
         'priority_id',
         'due_date',
         'meta',
+        'google_calendar_event_id',
     ];
 
     protected function casts(): array

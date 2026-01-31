@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Auth\SocialiteController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FriendController;
+use App\Http\Controllers\Settings\GoogleCalendarController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -45,6 +47,30 @@ Route::middleware('auth')->prefix('friends')->name('friends.')->group(function (
     Route::post('/', [FriendController::class, 'store'])->name('store');
     Route::patch('/{friendship}/respond', [FriendController::class, 'respond'])->name('respond');
     Route::delete('/{friendship}', [FriendController::class, 'destroy'])->name('destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Calendar
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->prefix('calendar')->name('calendar.')->group(function () {
+    Route::get('/', [CalendarController::class, 'index'])->name('index');
+    Route::get('/events', [CalendarController::class, 'events'])->name('events');
+    Route::post('/events', [CalendarController::class, 'store'])->name('events.store');
+    Route::put('/events/{eventId}', [CalendarController::class, 'update'])->name('events.update');
+    Route::delete('/events/{eventId}', [CalendarController::class, 'destroy'])->name('events.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Google Calendar OAuth
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->prefix('google-calendar')->name('google-calendar.')->group(function () {
+    Route::get('/connect', [GoogleCalendarController::class, 'connect'])->name('connect');
+    Route::get('/callback', [GoogleCalendarController::class, 'callback'])->name('callback');
+    Route::post('/disconnect', [GoogleCalendarController::class, 'disconnect'])->name('disconnect');
 });
 
 require __DIR__.'/settings.php';

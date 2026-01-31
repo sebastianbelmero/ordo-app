@@ -86,7 +86,7 @@ export default function EditTask({ task, statusConfig }: EditTaskProps) {
         description: task.description || '',
         status_id: task.status_id.toString(),
         priority_id: task.priority_id.toString(),
-        due_date: task.due_date || '',
+        due_date: task.due_date ? task.due_date.split('T')[0] : '',
     });
 
     const [isDeleting, setIsDeleting] = useState(false);

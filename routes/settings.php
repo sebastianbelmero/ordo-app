@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\GoogleCalendarController;
 use App\Http\Controllers\Settings\ModulesController;
 use App\Http\Controllers\Settings\OpusSettingsController;
 use App\Http\Controllers\Settings\PasswordController;
@@ -58,4 +59,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('settings/vocatio/job-statuses', [VocatioSettingsController::class, 'storeJobStatus'])->name('settings.vocatio.job-statuses.store');
     Route::put('settings/vocatio/job-statuses/{id}', [VocatioSettingsController::class, 'updateJobStatus'])->name('settings.vocatio.job-statuses.update');
     Route::delete('settings/vocatio/job-statuses/{id}', [VocatioSettingsController::class, 'destroyJobStatus'])->name('settings.vocatio.job-statuses.destroy');
+
+    // Google Calendar settings
+    Route::get('settings/google-calendar', [GoogleCalendarController::class, 'index'])->name('settings.google-calendar');
+    Route::put('settings/google-calendar', [GoogleCalendarController::class, 'update'])->name('settings.google-calendar.update');
 });

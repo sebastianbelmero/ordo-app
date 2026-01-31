@@ -90,7 +90,7 @@ class AssignmentController extends Controller
         $data = $request->validated();
         $data['course_id'] = $course;
 
-        $assignment = $this->studiumService->createAssignment($data);
+        $assignment = $this->studiumService->createAssignment($data, $request->user());
 
         return redirect()
             ->route('studium.assignments.show', $assignment['id'])
@@ -143,7 +143,7 @@ class AssignmentController extends Controller
      */
     public function update(UpdateAssignmentRequest $request, int $assignment): RedirectResponse
     {
-        $data = $this->studiumService->updateAssignment($assignment, $request->validated());
+        $data = $this->studiumService->updateAssignment($assignment, $request->validated(), $request->user());
 
         if (! $data) {
             abort(404);
@@ -172,7 +172,7 @@ class AssignmentController extends Controller
 
         $this->studiumService->updateAssignment($assignment, [
             'grade' => $newGrade,
-        ]);
+        ], $request->user());
 
         $status = $newGrade !== null ? 'completed' : 'pending';
 
@@ -184,7 +184,7 @@ class AssignmentController extends Controller
      *
      * Route: DELETE /studium/assignments/{assignment}
      */
-    public function destroy(int $assignment): RedirectResponse
+    public function destroy(Request $request, int $assignment): RedirectResponse
     {
         $assignmentData = $this->studiumService->getAssignment($assignment);
 
@@ -193,7 +193,7 @@ class AssignmentController extends Controller
         }
 
         $courseId = $assignmentData['course_id'];
-        $this->studiumService->deleteAssignment($assignment);
+        $this->studiumService->deleteAssignment($assignment, $request->user());
 
         return redirect()
             ->route('studium.courses.show', $courseId)

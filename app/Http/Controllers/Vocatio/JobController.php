@@ -94,7 +94,7 @@ class JobController extends Controller
         $data['pipeline_id'] = $pipeline;
         $data['user_id'] = $request->user()->id;
 
-        $job = $this->vocatioService->createJob($data);
+        $job = $this->vocatioService->createJob($data, $request->user());
 
         return redirect()
             ->route('vocatio.jobs.show', $job['id'])
@@ -155,7 +155,7 @@ class JobController extends Controller
      */
     public function update(UpdateJobRequest $request, string $job): RedirectResponse
     {
-        $data = $this->vocatioService->updateJob($job, $request->validated());
+        $data = $this->vocatioService->updateJob($job, $request->validated(), $request->user());
 
         if (! $data) {
             abort(404);
@@ -196,7 +196,7 @@ class JobController extends Controller
      *
      * Route: DELETE /vocatio/jobs/{job}
      */
-    public function destroy(string $job): RedirectResponse
+    public function destroy(Request $request, string $job): RedirectResponse
     {
         $jobData = $this->vocatioService->getJob($job);
 
@@ -205,7 +205,7 @@ class JobController extends Controller
         }
 
         $pipelineId = $jobData['pipeline_id'];
-        $this->vocatioService->deleteJob($job);
+        $this->vocatioService->deleteJob($job, $request->user());
 
         return redirect()
             ->route('vocatio.pipelines.show', $pipelineId)

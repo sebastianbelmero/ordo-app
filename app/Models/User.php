@@ -28,6 +28,11 @@ class User extends Authenticatable
         'password',
         'google_id',
         'avatar',
+        'google_access_token',
+        'google_refresh_token',
+        'google_token_expires_at',
+        'google_calendar_id',
+        'google_calendar_enabled',
     ];
 
     /**
@@ -40,6 +45,8 @@ class User extends Authenticatable
         'two_factor_secret',
         'two_factor_recovery_codes',
         'remember_token',
+        'google_access_token',
+        'google_refresh_token',
     ];
 
     /**
@@ -53,6 +60,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'google_token_expires_at' => 'datetime',
+            'google_calendar_enabled' => 'boolean',
+            'google_access_token' => 'encrypted',
+            'google_refresh_token' => 'encrypted',
         ];
     }
 
@@ -135,5 +146,25 @@ class User extends Authenticatable
                 });
             })
             ->exists();
+    }
+
+    /**
+     * Check if Google Calendar is connected.
+     */
+    public function hasGoogleCalendarConnected(): bool
+    {
+        return ! empty($this->google_access_token) && ! empty($this->google_refresh_token);
+    }
+
+    /**
+     * Check if Google token is expired.
+     */
+    public function isGoogleTokenExpired(): bool
+    {
+        if (! $this->google_token_expires_at) {
+            return true;
+        }
+
+        return $this->google_token_expires_at->isPast();
     }
 }

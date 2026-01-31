@@ -17,7 +17,7 @@ class Assignment extends Model
         'type_id',
         'deadline',
         'grade',
-        'gcal_event_id',
+        'google_calendar_event_id',
     ];
 
     protected function casts(): array
