@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { Briefcase, Calendar, CheckCircle2, FolderKanban, GraduationCap, LogIn } from 'lucide-react';
+import { ArrowRight, Briefcase, Calendar, CheckCircle2, FolderKanban, GraduationCap, LogIn } from 'lucide-react';
 import { dashboard, login } from '@/routes';
 import type { SharedData } from '@/types';
 import AppLogoIcon from '@/components/app-logo-icon';

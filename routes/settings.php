@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\FeedbackController;
 use App\Http\Controllers\Settings\GoogleCalendarController;
 use App\Http\Controllers\Settings\ModulesController;
 use App\Http\Controllers\Settings\OpusSettingsController;
@@ -63,4 +64,8 @@ Route::middleware(['auth'])->group(function () {
     // Google Calendar settings
     Route::get('settings/google-calendar', [GoogleCalendarController::class, 'index'])->name('settings.google-calendar');
     Route::put('settings/google-calendar', [GoogleCalendarController::class, 'update'])->name('settings.google-calendar.update');
+
+    // Feedback
+    Route::get('settings/feedback', [FeedbackController::class, 'index'])->name('settings.feedback');
+    Route::post('settings/feedback', [FeedbackController::class, 'store'])->name('settings.feedback.store');
 });

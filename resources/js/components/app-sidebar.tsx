@@ -9,6 +9,7 @@ import {
     GraduationCap,
     LayoutGrid,
     Layers,
+    MessageSquare,
     Settings,
     Share2,
     Shield,
@@ -101,6 +102,11 @@ const adminNavItems: NavItem[] = [
         title: 'Activity Logs',
         href: '/admin/activity-logs',
         icon: Activity,
+    },
+    {
+        title: 'Feedbacks',
+        href: '/admin/feedbacks',
+        icon: MessageSquare,
     },
 ];
 

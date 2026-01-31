@@ -8,7 +8,7 @@ import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { index as indexModules } from '@/routes/modules';
 import { edit } from '@/routes/profile';
-import { opus as opusSettings, studium as studiumSettings, vocatio as vocatioSettings, googleCalendar } from '@/routes/settings';
+import { opus as opusSettings, studium as studiumSettings, vocatio as vocatioSettings, googleCalendar, feedback as feedbackSettings } from '@/routes/settings';
 import type { NavItem } from '@/types';
 
 const sidebarNavItems: NavItem[] = [
@@ -45,6 +45,11 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Vocatio',
         href: vocatioSettings(),
+        icon: null,
+    },
+    {
+        title: 'Feedback',
+        href: feedbackSettings(),
         icon: null,
     },
 ];
