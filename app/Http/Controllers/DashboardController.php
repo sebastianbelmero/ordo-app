@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Opus\TaskPriority;
+use App\Models\Opus\TaskStatus;
+use App\Models\Studium\Assignment;
+use App\Models\Studium\AssignmentType;
+use App\Models\Studium\Course;
+use App\Models\Studium\Program;
+use App\Models\Studium\Semester;
+use App\Models\Vocatio\Job;
+use App\Models\Vocatio\JobStatus;
+use App\Models\Vocatio\Pipeline;
 use App\Services\Opus\OpusService;
 use App\Services\Studium\StudiumService;
 use App\Services\UserService;
 use App\Services\Vocatio\VocatioService;
-use App\Support\DummyData;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Inertia\Response;
 
 /**
  * ======================================================================================
@@ -30,7 +38,6 @@ class DashboardController extends Controller
         protected OpusService $opusService,
         protected StudiumService $studiumService,
         protected VocatioService $vocatioService,
-        protected DummyData $dummyData,
     ) {}
 
     /**
@@ -88,30 +95,33 @@ class DashboardController extends Controller
      */
     private function getOpusChartData(int $userId): array
     {
-        $tasks = collect($this->dummyData->opusTasks());
-        $projects = collect($this->dummyData->opusProjects())->where('user_id', $userId);
-        $projectIds = $projects->pluck('id')->toArray();
-        $userTasks = $tasks->whereIn('project_id', $projectIds);
-        $taskStatuses = collect($this->dummyData->opusTaskStatuses())->where('user_id', $userId);
+        // Get task statuses with task counts for user's workspaces
+        $taskStatuses = TaskStatus::where('user_id', $userId)
+            ->withCount(['tasks' => function ($query) use ($userId) {
+                $query->whereHas('project.workspace', fn ($q) => $q->where('user_id', $userId));
+            }])
+            ->orderBy('order')
+            ->get();
 
-        // Task by status chart data
-        $tasksByStatus = $taskStatuses->map(function ($status) use ($userTasks) {
-            return [
-                'status' => $status['name'],
-                'count' => $userTasks->where('status_id', $status['id'])->count(),
-                'color' => $status['color'],
-            ];
-        })->values()->toArray();
+        $tasksByStatus = $taskStatuses->map(fn ($status) => [
+            'status' => $status->name,
+            'count' => $status->tasks_count,
+            'color' => $status->color,
+        ])->values()->toArray();
 
-        // Task priority distribution
-        $taskPriorities = collect($this->dummyData->opusTaskPriorities())->where('user_id', $userId);
-        $tasksByPriority = $taskPriorities->map(function ($priority) use ($userTasks) {
-            return [
-                'priority' => $priority['name'],
-                'count' => $userTasks->where('priority_id', $priority['id'])->count(),
-                'color' => $priority['color'],
-            ];
-        })->values()->toArray();
+        // Get task priorities with task counts
+        $taskPriorities = TaskPriority::where('user_id', $userId)
+            ->withCount(['tasks' => function ($query) use ($userId) {
+                $query->whereHas('project.workspace', fn ($q) => $q->where('user_id', $userId));
+            }])
+            ->orderBy('level')
+            ->get();
+
+        $tasksByPriority = $taskPriorities->map(fn ($priority) => [
+            'priority' => $priority->name,
+            'count' => $priority->tasks_count,
+            'color' => $priority->color,
+        ])->values()->toArray();
 
         return [
             'tasksByStatus' => $tasksByStatus,
@@ -124,29 +134,29 @@ class DashboardController extends Controller
      */
     private function getStudiumChartData(int $userId): array
     {
-        $assignments = collect($this->dummyData->studiumAssignments());
-        $courses = collect($this->dummyData->studiumCourses());
-        $semesters = collect($this->dummyData->studiumSemesters());
-        $programs = collect($this->dummyData->studiumPrograms())->where('user_id', $userId);
+        // Get user's programs → semesters → courses → assignments
+        $programIds = Program::where('user_id', $userId)->pluck('id');
+        $semesterIds = Semester::whereIn('program_id', $programIds)->pluck('id');
+        $courseIds = Course::whereIn('semester_id', $semesterIds)->pluck('id');
 
-        $programIds = $programs->pluck('id')->toArray();
-        $semesterIds = $semesters->whereIn('program_id', $programIds)->pluck('id')->toArray();
-        $courseIds = $courses->whereIn('semester_id', $semesterIds)->pluck('id')->toArray();
-        $userAssignments = $assignments->whereIn('course_id', $courseIds);
+        // Assignment types with counts
+        $assignmentTypes = AssignmentType::where('user_id', $userId)
+            ->withCount(['assignments' => fn ($query) => $query->whereIn('course_id', $courseIds)])
+            ->get();
 
-        // Assignment types distribution
-        $assignmentTypes = collect($this->dummyData->studiumAssignmentTypes());
-        $assignmentsByType = $assignmentTypes->map(function ($type) use ($userAssignments) {
-            return [
-                'type' => $type['name'],
-                'count' => $userAssignments->where('type_id', $type['id'])->count(),
-                'color' => $type['color'],
-            ];
-        })->filter(fn($item) => $item['count'] > 0)->values()->toArray();
+        $assignmentsByType = $assignmentTypes
+            ->filter(fn ($type) => $type->assignments_count > 0)
+            ->map(fn ($type) => [
+                'type' => $type->name,
+                'count' => $type->assignments_count,
+                'color' => $type->color,
+            ])
+            ->values()
+            ->toArray();
 
-        // Assignment completion (graded vs ungraded)
-        $completedCount = $userAssignments->whereNotNull('grade')->count();
-        $pendingCount = $userAssignments->whereNull('grade')->count();
+        // Assignment completion status (graded vs ungraded)
+        $completedCount = Assignment::whereIn('course_id', $courseIds)->whereNotNull('grade')->count();
+        $pendingCount = Assignment::whereIn('course_id', $courseIds)->whereNull('grade')->count();
 
         $completionData = [
             ['status' => 'Completed', 'count' => $completedCount, 'color' => '#22c55e'],
@@ -164,36 +174,34 @@ class DashboardController extends Controller
      */
     private function getVocatioChartData(int $userId): array
     {
-        $jobs = collect($this->dummyData->vocatioJobs())->where('user_id', $userId);
-        $jobStatuses = collect($this->dummyData->vocatioJobStatuses())->where('user_id', $userId);
-        $pipelines = collect($this->dummyData->vocatioPipelines())->where('user_id', $userId);
-
         // Jobs by status (for funnel chart)
-        $jobsByStatus = $jobStatuses->map(function ($status) use ($jobs) {
-            return [
-                'status' => $status['name'],
-                'count' => $jobs->where('status_id', $status['id'])->count(),
-                'color' => $status['color'],
-                'order' => $status['order'],
-            ];
-        })->sortBy('order')->values()->toArray();
+        $jobStatuses = JobStatus::where('user_id', $userId)
+            ->withCount(['jobs' => fn ($query) => $query->where('user_id', $userId)])
+            ->orderBy('order')
+            ->get();
+
+        $jobsByStatus = $jobStatuses->map(fn ($status) => [
+            'status' => $status->name,
+            'count' => $status->jobs_count,
+            'color' => $status->color,
+            'order' => $status->order,
+        ])->values()->toArray();
 
         // Jobs by pipeline
-        $jobsByPipeline = $pipelines->map(function ($pipeline) use ($jobs) {
-            return [
-                'pipeline' => $pipeline['name'],
-                'count' => $jobs->where('pipeline_id', $pipeline['id'])->count(),
-            ];
-        })->values()->toArray();
+        $pipelines = Pipeline::where('user_id', $userId)
+            ->withCount(['jobs' => fn ($query) => $query->where('user_id', $userId)])
+            ->get();
+
+        $jobsByPipeline = $pipelines->map(fn ($pipeline) => [
+            'pipeline' => $pipeline->name,
+            'count' => $pipeline->jobs_count,
+        ])->values()->toArray();
 
         // Interest level distribution
-        $interestLevels = [
-            ['level' => '⭐', 'count' => $jobs->where('level_of_interest', 1)->count()],
-            ['level' => '⭐⭐', 'count' => $jobs->where('level_of_interest', 2)->count()],
-            ['level' => '⭐⭐⭐', 'count' => $jobs->where('level_of_interest', 3)->count()],
-            ['level' => '⭐⭐⭐⭐', 'count' => $jobs->where('level_of_interest', 4)->count()],
-            ['level' => '⭐⭐⭐⭐⭐', 'count' => $jobs->where('level_of_interest', 5)->count()],
-        ];
+        $interestLevels = collect([1, 2, 3, 4, 5])->map(fn ($level) => [
+            'level' => str_repeat('⭐', $level),
+            'count' => Job::where('user_id', $userId)->where('level_of_interest', $level)->count(),
+        ])->toArray();
 
         return [
             'jobsByStatus' => $jobsByStatus,

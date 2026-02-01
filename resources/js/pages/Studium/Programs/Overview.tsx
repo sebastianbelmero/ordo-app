@@ -172,7 +172,7 @@ function CourseCard({ course }: { course: Course }) {
 
 function SemesterSection({ semester }: { semester: Semester }) {
     const courses = semester.courses ?? [];
-    const totalCredits = courses.reduce((sum, c) => sum + c.credits, 0);
+    const totalCredits = courses.reduce((sum, c) => sum + Number(c.credits), 0);
 
     return (
         <div className="space-y-4">
