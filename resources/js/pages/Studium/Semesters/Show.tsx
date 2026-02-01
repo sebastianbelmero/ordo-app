@@ -143,7 +143,7 @@ export default function SemesterShow({ semester }: SemesterShowProps) {
     ];
 
     const courses = semester.courses ?? [];
-    const totalCredits = courses.reduce((sum, c) => sum + c.credits, 0);
+    const totalCredits = courses.reduce((sum, c) => sum + Number(c.credits), 0);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
