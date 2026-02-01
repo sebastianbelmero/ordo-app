@@ -70,6 +70,7 @@ interface Project {
     status?: ProjectStatus;
     tasks?: Task[];
     tasks_count?: number;
+    completed_tasks_count?: number;
 }
 
 interface Workspace {
@@ -90,8 +91,8 @@ interface WorkspaceShowProps {
 // =============================================================================
 
 function ProjectCard({ project, workspaceColor }: { project: Project; workspaceColor: string }) {
-    const taskCount = project.tasks?.length ?? project.tasks_count ?? 0;
-    const completedTasks = project.tasks?.filter((t) => t.status?.is_completed).length ?? 0;
+    const taskCount = project.tasks_count ?? project.tasks?.length ?? 0;
+    const completedTasks = project.completed_tasks_count ?? project.tasks?.filter((t) => t.status?.is_completed).length ?? 0;
     const progress = taskCount > 0 ? Math.round((completedTasks / taskCount) * 100) : 0;
 
     return (

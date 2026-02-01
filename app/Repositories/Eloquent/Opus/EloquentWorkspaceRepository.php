@@ -27,7 +27,11 @@ class EloquentWorkspaceRepository implements WorkspaceRepositoryInterface
 
     public function findWithProjects(int $id): ?array
     {
-        $workspace = Workspace::with(['projects.status'])
+        $workspace = Workspace::with([
+            'projects.status',
+            'projects' => fn ($query) => $query->withCount('tasks')
+                ->withCount(['tasks as completed_tasks_count' => fn ($q) => $q->whereHas('status', fn ($s) => $s->where('is_completed', true))]),
+        ])
             ->withCount(['projects', 'tasks'])
             ->find($id);
 
