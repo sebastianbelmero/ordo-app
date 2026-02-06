@@ -11,6 +11,7 @@ import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit } from '@/routes/profile';
 import type { BreadcrumbItem, SharedData } from '@/types';
+import ConnectTelegram from './partials/connect-telegram';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -39,6 +40,7 @@ export default function Profile({
                         title="Profile information"
                         description="Update your name and email address"
                     />
+                                <ConnectTelegram className="max-w-xl mt-10" />
 
                     <Form
                         {...ProfileController.update.form()}
@@ -67,6 +69,7 @@ export default function Profile({
                                         message={errors.name}
                                     />
                                 </div>
+
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="email">Email address</Label>

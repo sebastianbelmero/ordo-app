@@ -33,6 +33,8 @@ class User extends Authenticatable
         'google_token_expires_at',
         'google_calendar_id',
         'google_calendar_enabled',
+        'telegram_chat_id',
+        'telegram_auth_code',
     ];
 
     /**
@@ -153,7 +155,12 @@ class User extends Authenticatable
      */
     public function hasGoogleCalendarConnected(): bool
     {
-        return ! empty($this->google_access_token) && ! empty($this->google_refresh_token);
+        try {
+            return ! empty($this->google_access_token) && ! empty($this->google_refresh_token);
+        } catch (\Exception $e) {
+            // Token corrupted (e.g., APP_KEY changed)
+            return false;
+        }
     }
 
     /**

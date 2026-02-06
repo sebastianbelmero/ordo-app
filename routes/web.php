@@ -5,6 +5,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FriendController;
 use App\Http\Controllers\Settings\GoogleCalendarController;
+use App\Http\Controllers\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -72,6 +73,9 @@ Route::middleware('auth')->prefix('google-calendar')->name('google-calendar.')->
     Route::get('/callback', [GoogleCalendarController::class, 'callback'])->name('callback');
     Route::post('/disconnect', [GoogleCalendarController::class, 'disconnect'])->name('disconnect');
 });
+
+Route::post('/settings/telegram/generate-code', [TelegramWebhookController::class, 'generateAuthCode'])
+    ->middleware(['auth']);
 
 require __DIR__.'/settings.php';
 require __DIR__.'/opus.php';

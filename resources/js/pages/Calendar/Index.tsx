@@ -345,6 +345,7 @@ export default function CalendarIndex({ isConnected, isEnabled }: CalendarIndexP
                         ref={calendarRef}
                         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                         initialView="dayGridMonth"
+                        timeZone="Asia/Jakarta"
                         headerToolbar={{
                             left: 'prev,next today',
                             center: 'title',
